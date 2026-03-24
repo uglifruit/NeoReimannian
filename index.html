@@ -275,7 +275,7 @@
 <div id="app">
   <header>
     <h1>Neo-Riemannian Tonnetz</h1>
-    <p>Explore triadic transformations on the pitch lattice — P, L, R move you through the harmonic space</p>
+    <p>Explore triadic transformations on the pitch lattice — P, L, R, S, H, N move you through the harmonic space</p>
   </header>
 
   <div id="main-layout">
@@ -316,6 +316,30 @@
             </span>
             <span class="btn-preview" id="preview-l"></span>
           </button>
+          <button class="nrt-btn" id="btn-s">
+            <span class="btn-key">S</span>
+            <span class="btn-info">
+              <span class="btn-label">Slide</span>
+              <span class="btn-desc">Root shifts ±1 semitone, quality flips</span>
+            </span>
+            <span class="btn-preview" id="preview-s"></span>
+          </button>
+          <button class="nrt-btn" id="btn-h">
+            <span class="btn-key">H</span>
+            <span class="btn-info">
+              <span class="btn-label">Hexatonic Pole</span>
+              <span class="btn-desc">Opposite pole of hexatonic cycle</span>
+            </span>
+            <span class="btn-preview" id="preview-h"></span>
+          </button>
+          <button class="nrt-btn" id="btn-n">
+            <span class="btn-key">N</span>
+            <span class="btn-info">
+              <span class="btn-label">Nebenverwandt</span>
+              <span class="btn-desc">Share a perfect fifth, quality flips</span>
+            </span>
+            <span class="btn-preview" id="preview-n"></span>
+          </button>
         </div>
       </div>
 
@@ -349,33 +373,36 @@ const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 // Major triad: notes=[r,(r+4)%12,(r+7)%12], P=min_r, R=min_(r+9)%12, L=min_(r+4)%12
 // Minor triad: notes=[r,(r+3)%12,(r+7)%12], P=maj_r, R=maj_(r+3)%12, L=maj_(r+8)%12
+// S (Slide):          maj→min root+1,  min→maj root-1   (share the third)
+// H (Hexatonic Pole): maj→min root+8,  min→maj root+4   (no common tones)
+// N (Nebenverwandt):  maj→min root+5,  min→maj root+7   (share a perfect fifth)
 const CHORD_REGISTRY = {
-  'C_maj':  { root:0,  quality:'maj', notes:[0,4,7],    P:'C_min',  R:'A_min',  L:'E_min'  },
-  'C_min':  { root:0,  quality:'min', notes:[0,3,7],    P:'C_maj',  R:'Eb_maj', L:'Ab_maj' },
-  'Cs_maj': { root:1,  quality:'maj', notes:[1,5,8],    P:'Cs_min', R:'Bb_min', L:'F_min'  },
-  'Cs_min': { root:1,  quality:'min', notes:[1,4,8],    P:'Cs_maj', R:'E_maj',  L:'A_maj'  },
-  'D_maj':  { root:2,  quality:'maj', notes:[2,6,9],    P:'D_min',  R:'B_min',  L:'Fs_min' },
-  'D_min':  { root:2,  quality:'min', notes:[2,5,9],    P:'D_maj',  R:'F_maj',  L:'Bb_maj' },
-  'Eb_maj': { root:3,  quality:'maj', notes:[3,7,10],   P:'Eb_min', R:'C_min',  L:'G_min'  },
-  'Eb_min': { root:3,  quality:'min', notes:[3,6,10],   P:'Eb_maj', R:'Fs_maj', L:'B_maj'  },
-  'E_maj':  { root:4,  quality:'maj', notes:[4,8,11],   P:'E_min',  R:'Cs_min', L:'Gs_min' },
-  'E_min':  { root:4,  quality:'min', notes:[4,7,11],   P:'E_maj',  R:'G_maj',  L:'C_maj'  },
-  'F_maj':  { root:5,  quality:'maj', notes:[5,9,0],    P:'F_min',  R:'D_min',  L:'A_min'  },
-  'F_min':  { root:5,  quality:'min', notes:[5,8,0],    P:'F_maj',  R:'Ab_maj', L:'Db_maj' },
-  'Fs_maj': { root:6,  quality:'maj', notes:[6,10,1],   P:'Fs_min', R:'Eb_min', L:'Bb_min' },
-  'Fs_min': { root:6,  quality:'min', notes:[6,9,1],    P:'Fs_maj', R:'A_maj',  L:'D_maj'  },
-  'G_maj':  { root:7,  quality:'maj', notes:[7,11,2],   P:'G_min',  R:'E_min',  L:'B_min'  },
-  'G_min':  { root:7,  quality:'min', notes:[7,10,2],   P:'G_maj',  R:'Bb_maj', L:'Eb_maj' },
-  'Ab_maj': { root:8,  quality:'maj', notes:[8,0,3],    P:'Ab_min', R:'F_min',  L:'C_min'  },
-  'Ab_min': { root:8,  quality:'min', notes:[8,11,3],   P:'Ab_maj', R:'B_maj',  L:'E_maj'  },
-  'A_maj':  { root:9,  quality:'maj', notes:[9,1,4],    P:'A_min',  R:'Fs_min', L:'Cs_min' },
-  'A_min':  { root:9,  quality:'min', notes:[9,0,4],    P:'A_maj',  R:'C_maj',  L:'F_maj'  },
-  'Bb_maj': { root:10, quality:'maj', notes:[10,2,5],   P:'Bb_min', R:'G_min',  L:'D_min'  },
-  'Bb_min': { root:10, quality:'min', notes:[10,1,5],   P:'Bb_maj', R:'Cs_maj', L:'Fs_maj' },
-  'B_maj':  { root:11, quality:'maj', notes:[11,3,6],   P:'B_min',  R:'Gs_min', L:'Eb_min' },
-  'B_min':  { root:11, quality:'min', notes:[11,2,6],   P:'B_maj',  R:'D_maj',  L:'G_maj'  },
-  'Gs_min': { root:8,  quality:'min', notes:[8,11,3],   P:'Ab_maj', R:'B_maj',  L:'E_maj'  },
-  'Db_maj': { root:1,  quality:'maj', notes:[1,5,8],    P:'Cs_min', R:'Bb_min', L:'F_min'  },
+  'C_maj':  { root:0,  quality:'maj', notes:[0,4,7],    P:'C_min',  R:'A_min',  L:'E_min',  S:'Cs_min', H:'Ab_min', N:'F_min'  },
+  'C_min':  { root:0,  quality:'min', notes:[0,3,7],    P:'C_maj',  R:'Eb_maj', L:'Ab_maj', S:'B_maj',  H:'E_maj',  N:'G_maj'  },
+  'Cs_maj': { root:1,  quality:'maj', notes:[1,5,8],    P:'Cs_min', R:'Bb_min', L:'F_min',  S:'D_min',  H:'A_min',  N:'Fs_min' },
+  'Cs_min': { root:1,  quality:'min', notes:[1,4,8],    P:'Cs_maj', R:'E_maj',  L:'A_maj',  S:'C_maj',  H:'F_maj',  N:'Ab_maj' },
+  'D_maj':  { root:2,  quality:'maj', notes:[2,6,9],    P:'D_min',  R:'B_min',  L:'Fs_min', S:'Eb_min', H:'Bb_min', N:'G_min'  },
+  'D_min':  { root:2,  quality:'min', notes:[2,5,9],    P:'D_maj',  R:'F_maj',  L:'Bb_maj', S:'Cs_maj', H:'Fs_maj', N:'A_maj'  },
+  'Eb_maj': { root:3,  quality:'maj', notes:[3,7,10],   P:'Eb_min', R:'C_min',  L:'G_min',  S:'E_min',  H:'B_min',  N:'Ab_min' },
+  'Eb_min': { root:3,  quality:'min', notes:[3,6,10],   P:'Eb_maj', R:'Fs_maj', L:'B_maj',  S:'D_maj',  H:'G_maj',  N:'Bb_maj' },
+  'E_maj':  { root:4,  quality:'maj', notes:[4,8,11],   P:'E_min',  R:'Cs_min', L:'Gs_min', S:'F_min',  H:'C_min',  N:'A_min'  },
+  'E_min':  { root:4,  quality:'min', notes:[4,7,11],   P:'E_maj',  R:'G_maj',  L:'C_maj',  S:'Eb_maj', H:'Ab_maj', N:'B_maj'  },
+  'F_maj':  { root:5,  quality:'maj', notes:[5,9,0],    P:'F_min',  R:'D_min',  L:'A_min',  S:'Fs_min', H:'Cs_min', N:'Bb_min' },
+  'F_min':  { root:5,  quality:'min', notes:[5,8,0],    P:'F_maj',  R:'Ab_maj', L:'Db_maj', S:'E_maj',  H:'A_maj',  N:'C_maj'  },
+  'Fs_maj': { root:6,  quality:'maj', notes:[6,10,1],   P:'Fs_min', R:'Eb_min', L:'Bb_min', S:'G_min',  H:'D_min',  N:'B_min'  },
+  'Fs_min': { root:6,  quality:'min', notes:[6,9,1],    P:'Fs_maj', R:'A_maj',  L:'D_maj',  S:'F_maj',  H:'Bb_maj', N:'Cs_maj' },
+  'G_maj':  { root:7,  quality:'maj', notes:[7,11,2],   P:'G_min',  R:'E_min',  L:'B_min',  S:'Ab_min', H:'Eb_min', N:'C_min'  },
+  'G_min':  { root:7,  quality:'min', notes:[7,10,2],   P:'G_maj',  R:'Bb_maj', L:'Eb_maj', S:'Fs_maj', H:'B_maj',  N:'D_maj'  },
+  'Ab_maj': { root:8,  quality:'maj', notes:[8,0,3],    P:'Ab_min', R:'F_min',  L:'C_min',  S:'A_min',  H:'E_min',  N:'Cs_min' },
+  'Ab_min': { root:8,  quality:'min', notes:[8,11,3],   P:'Ab_maj', R:'B_maj',  L:'E_maj',  S:'G_maj',  H:'C_maj',  N:'Eb_maj' },
+  'A_maj':  { root:9,  quality:'maj', notes:[9,1,4],    P:'A_min',  R:'Fs_min', L:'Cs_min', S:'Bb_min', H:'F_min',  N:'D_min'  },
+  'A_min':  { root:9,  quality:'min', notes:[9,0,4],    P:'A_maj',  R:'C_maj',  L:'F_maj',  S:'Ab_maj', H:'Cs_maj', N:'E_maj'  },
+  'Bb_maj': { root:10, quality:'maj', notes:[10,2,5],   P:'Bb_min', R:'G_min',  L:'D_min',  S:'B_min',  H:'Fs_min', N:'Eb_min' },
+  'Bb_min': { root:10, quality:'min', notes:[10,1,5],   P:'Bb_maj', R:'Cs_maj', L:'Fs_maj', S:'A_maj',  H:'D_maj',  N:'F_maj'  },
+  'B_maj':  { root:11, quality:'maj', notes:[11,3,6],   P:'B_min',  R:'Gs_min', L:'Eb_min', S:'C_min',  H:'G_min',  N:'E_min'  },
+  'B_min':  { root:11, quality:'min', notes:[11,2,6],   P:'B_maj',  R:'D_maj',  L:'G_maj',  S:'Bb_maj', H:'Eb_maj', N:'Fs_maj' },
+  'Gs_min': { root:8,  quality:'min', notes:[8,11,3],   P:'Ab_maj', R:'B_maj',  L:'E_maj',  S:'G_maj',  H:'C_maj',  N:'Eb_maj' },
+  'Db_maj': { root:1,  quality:'maj', notes:[1,5,8],    P:'Cs_min', R:'Bb_min', L:'F_min',  S:'D_min',  H:'A_min',  N:'Fs_min' },
 };
 
 function chordDisplayName(id) {
@@ -712,6 +739,18 @@ const EXPLANATIONS = {
   L: {
     maj: 'L (Leading-tone): the root descends a semitone to become the leading tone; shares root+M3 with the resulting minor chord.',
     min: 'L (Leading-tone): the fifth ascends a semitone; shares m3+P5 with the resulting major chord.'
+  },
+  S: {
+    maj: 'S (Slide): root moves up a semitone and quality flips to minor — the major third is shared as the minor third of the new chord.',
+    min: 'S (Slide): root moves down a semitone and quality flips to major — the minor third is shared as the major third of the new chord.'
+  },
+  H: {
+    maj: 'H (Hexatonic Pole): the antipodal chord in the hexatonic cycle — root moves up 8 semitones, quality flips. No common tones; maximum voice displacement.',
+    min: 'H (Hexatonic Pole): the antipodal chord in the hexatonic cycle — root moves up 4 semitones, quality flips. No common tones; maximum voice displacement.'
+  },
+  N: {
+    maj: 'N (Nebenverwandt): the root of the major chord becomes the fifth of a new minor chord — shares one note, root descends a perfect fifth.',
+    min: 'N (Nebenverwandt): the fifth of the minor chord becomes the root of a new major chord — shares one note, root ascends a perfect fifth.'
   }
 };
 
@@ -738,7 +777,7 @@ function updateUI() {
 
 function updatePreviews() {
   const chord = CHORD_REGISTRY[state.currentChordId];
-  ['P','R','L'].forEach(k => {
+  ['P','R','L','S','H','N'].forEach(k => {
     const preview = document.getElementById('preview-' + k.toLowerCase());
     preview.textContent = '→ ' + chordDisplayName(chord[k]);
   });
@@ -802,6 +841,9 @@ function applyTransform(key) {
 document.getElementById('btn-p').addEventListener('click', () => applyTransform('P'));
 document.getElementById('btn-r').addEventListener('click', () => applyTransform('R'));
 document.getElementById('btn-l').addEventListener('click', () => applyTransform('L'));
+document.getElementById('btn-s').addEventListener('click', () => applyTransform('S'));
+document.getElementById('btn-h').addEventListener('click', () => applyTransform('H'));
+document.getElementById('btn-n').addEventListener('click', () => applyTransform('N'));
 
 document.getElementById('btn-play').addEventListener('click', () => {
   ensureAudioCtx();
@@ -819,13 +861,16 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   updateUI();
 });
 
-// Keyboard shortcuts: p, r, l keys
+// Keyboard shortcuts: p, r, l, s, h, n keys
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   const k = e.key.toUpperCase();
   if (k === 'P') applyTransform('P');
   else if (k === 'R') applyTransform('R');
   else if (k === 'L') applyTransform('L');
+  else if (k === 'S') applyTransform('S');
+  else if (k === 'H') applyTransform('H');
+  else if (k === 'N') applyTransform('N');
 });
 
 // Resize handling
