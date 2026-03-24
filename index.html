@@ -192,6 +192,43 @@
       min-height: 36px;
     }
 
+    /* Arpeggio selector */
+    #arp-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    #arp-group {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .arp-btn {
+      flex: 1;
+      padding: 7px 4px;
+      background: var(--bg-card);
+      border: none;
+      border-right: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .arp-btn:last-child { border-right: none; }
+
+    .arp-btn.active {
+      background: var(--amber);
+      color: #000;
+      font-weight: 600;
+    }
+
     /* Utility buttons */
     #utility-buttons {
       display: flex;
@@ -348,8 +385,15 @@
       </div>
 
       <div class="panel">
+        <div id="arp-label">Playback Mode</div>
+        <div id="arp-group">
+          <button class="arp-btn active" data-mode="chord">Chord</button>
+          <button class="arp-btn" data-mode="up">Up</button>
+          <button class="arp-btn" data-mode="down">Down</button>
+          <button class="arp-btn" data-mode="random">Random</button>
+        </div>
         <div id="utility-buttons">
-          <button class="util-btn" id="btn-play">&#9654; Play Chord</button>
+          <button class="util-btn" id="btn-play">&#9654; Play  [Space]</button>
           <button class="util-btn" id="btn-reset">Reset to C Major</button>
         </div>
       </div>
@@ -678,33 +722,45 @@ function playChord(notes) {
   ensureAudioCtx();
   stopAllNotes();
 
+  const mode = state.arpeggioMode;
+  const freqs = chordFrequencies(notes);  // always computed root-up
+
+  // Determine playback order (indices into freqs)
+  let order = [0, 1, 2];
+  if (mode === 'down')   order = [2, 1, 0];
+  else if (mode === 'random') order = [0, 1, 2].sort(() => Math.random() - 0.5);
+
+  const arpStep = (mode === 'chord') ? 0 : 0.16;  // seconds between notes
+
   const masterGain = audioCtx.createGain();
   masterGain.gain.setValueAtTime(0.13, audioCtx.currentTime);
   masterGain.connect(audioCtx.destination);
 
-  const freqs = chordFrequencies(notes);
   const harmonicGains = [0.50, 0.20, 0.10, 0.05, 0.025];
   const t = audioCtx.currentTime;
 
-  freqs.forEach(baseFreq => {
+  order.forEach((freqIdx, playIdx) => {
+    const baseFreq = freqs[freqIdx];
+    const ns = t + playIdx * arpStep;  // note start time
+
     const noteGain = audioCtx.createGain();
-    noteGain.gain.setValueAtTime(0, t);
-    noteGain.gain.linearRampToValueAtTime(1.0, t + 0.06);
-    noteGain.gain.linearRampToValueAtTime(0.7, t + 0.18);
-    noteGain.gain.setValueAtTime(0.7, t + 0.85);
-    noteGain.gain.linearRampToValueAtTime(0, t + 1.4);
+    noteGain.gain.setValueAtTime(0, ns);
+    noteGain.gain.linearRampToValueAtTime(1.0, ns + 0.06);
+    noteGain.gain.linearRampToValueAtTime(0.7, ns + 0.18);
+    noteGain.gain.setValueAtTime(0.7, ns + 0.85);
+    noteGain.gain.linearRampToValueAtTime(0, ns + 1.4);
     noteGain.connect(masterGain);
 
     harmonicGains.forEach((hGain, i) => {
       const osc = audioCtx.createOscillator();
       const hg = audioCtx.createGain();
-      hg.gain.setValueAtTime(hGain, t);
+      hg.gain.setValueAtTime(hGain, ns);
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(baseFreq * (i + 1), t);
+      osc.frequency.setValueAtTime(baseFreq * (i + 1), ns);
       osc.connect(hg);
       hg.connect(noteGain);
-      osc.start(t);
-      osc.stop(t + 1.5);
+      osc.start(ns);
+      osc.stop(ns + 1.5);
       activeNodes.push({ gainNode: hg, osc });
     });
   });
@@ -718,6 +774,7 @@ const state = {
   currentChordId: 'C_maj',
   lastTransform: null,
   history: [],
+  arpeggioMode: 'chord',
   transition: {
     active: false,
     fromNotes: null,
@@ -861,11 +918,24 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   updateUI();
 });
 
-// Keyboard shortcuts: p, r, l, s, h, n keys
+// Arpeggio mode buttons
+document.querySelectorAll('.arp-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.arpeggioMode = btn.dataset.mode;
+    document.querySelectorAll('.arp-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Keyboard shortcuts: p, r, l, s, h, n keys + space to replay
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   const k = e.key.toUpperCase();
-  if (k === 'P') applyTransform('P');
+  if (k === ' ') {
+    e.preventDefault();
+    ensureAudioCtx();
+    playChord(CHORD_REGISTRY[state.currentChordId].notes);
+  } else if (k === 'P') applyTransform('P');
   else if (k === 'R') applyTransform('R');
   else if (k === 'L') applyTransform('L');
   else if (k === 'S') applyTransform('S');
