@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neo-Riemannian Tonnetz</title>
+  <style>
+    :root {
+      --bg-deep:   #0d1117;
+      --bg-panel:  #161b22;
+      --bg-card:   #1f2937;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #7d8590;
+      --gold:      #f0a500;
+      --amber:     #ff9f43;
+      --blue:      #58a6ff;
+      --green:     #3fb950;
+      --red:       #f85149;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    #app {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    header {
+      text-align: center;
+      padding: 18px 0 22px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    header p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    #main-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* === CANVAS SECTION === */
+    #canvas-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #tonnetz-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      cursor: default;
+    }
+
+    /* === CONTROLS === */
+    #controls-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    /* Chord display */
+    #chord-display {
+      text-align: center;
+    }
+
+    #chord-name {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: -0.01em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    #chord-notes {
+      font-size: 1rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    #last-transform-badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 3px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      min-height: 24px;
+    }
+
+    /* Transform buttons */
+    #transform-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nrt-btn {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .nrt-btn:hover {
+      border-left-color: var(--amber);
+      background: #263044;
+    }
+
+    .nrt-btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-key {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--amber);
+      font-family: monospace;
+    }
+
+    .btn-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .btn-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .btn-desc {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .btn-preview {
+      font-size: 0.8rem;
+      color: var(--blue);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    /* Explanation */
+    #explanation-text {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+      min-height: 36px;
+    }
+
+    /* Utility buttons */
+    #utility-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .util-btn {
+      flex: 1;
+      padding: 9px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .util-btn:hover {
+      background: #263044;
+      border-color: var(--blue);
+    }
+
+    /* History */
+    #history-section h3 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    #history-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    #history-list li {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 5px 8px;
+      background: var(--bg-card);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hist-from { color: var(--text); }
+    .hist-arrow { color: var(--muted); }
+    .hist-key {
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.7rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .hist-to { color: var(--gold); }
+
+    #history-empty {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      #main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Neo-Riemannian Tonnetz</h1>
+    <p>Explore triadic transformations on the pitch lattice — P, L, R move you through the harmonic space</p>
+  </header>
+
+  <div id="main-layout">
+    <section id="canvas-section">
+      <canvas id="tonnetz-canvas"></canvas>
+    </section>
+
+    <aside id="controls-section">
+      <div class="panel" id="chord-display">
+        <div id="chord-name">C Major</div>
+        <div id="chord-notes">C · E · G</div>
+        <div id="last-transform-badge">Start</div>
+      </div>
+
+      <div class="panel">
+        <div id="transform-buttons">
+          <button class="nrt-btn" id="btn-p">
+            <span class="btn-key">P</span>
+            <span class="btn-info">
+              <span class="btn-label">Parallel</span>
+              <span class="btn-desc">Toggle major ↔ minor, same root</span>
+            </span>
+            <span class="btn-preview" id="preview-p"></span>
+          </button>
+          <button class="nrt-btn" id="btn-r">
+            <span class="btn-key">R</span>
+            <span class="btn-info">
+              <span class="btn-label">Relative</span>
+              <span class="btn-desc">Swap relative major/minor</span>
+            </span>
+            <span class="btn-preview" id="preview-r"></span>
+          </button>
+          <button class="nrt-btn" id="btn-l">
+            <span class="btn-key">L</span>
+            <span class="btn-info">
+              <span class="btn-label">Leading-tone</span>
+              <span class="btn-desc">Exchange root with leading tone</span>
+            </span>
+            <span class="btn-preview" id="preview-l"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p id="explanation-text"></p>
+      </div>
+
+      <div class="panel">
+        <div id="utility-buttons">
+          <button class="util-btn" id="btn-play">&#9654; Play Chord</button>
+          <button class="util-btn" id="btn-reset">Reset to C Major</button>
+        </div>
+      </div>
+
+      <div class="panel" id="history-section">
+        <h3>Transformation History</h3>
+        <ol id="history-list">
+          <li id="history-empty">No transformations yet</li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// SECTION 1: MUSIC THEORY DATA
+// ═══════════════════════════════════════════
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+// Major triad: notes=[r,(r+4)%12,(r+7)%12], P=min_r, R=min_(r+9)%12, L=min_(r+4)%12
+// Minor triad: notes=[r,(r+3)%12,(r+7)%12], P=maj_r, R=maj_(r+3)%12, L=maj_(r+8)%12
+const CHORD_REGISTRY = {
+  'C_maj':  { root:0,  quality:'maj', notes:[0,4,7],    P:'C_min',  R:'A_min',  L:'E_min'  },
+  'C_min':  { root:0,  quality:'min', notes:[0,3,7],    P:'C_maj',  R:'Eb_maj', L:'Ab_maj' },
+  'Cs_maj': { root:1,  quality:'maj', notes:[1,5,8],    P:'Cs_min', R:'Bb_min', L:'F_min'  },
+  'Cs_min': { root:1,  quality:'min', notes:[1,4,8],    P:'Cs_maj', R:'E_maj',  L:'A_maj'  },
+  'D_maj':  { root:2,  quality:'maj', notes:[2,6,9],    P:'D_min',  R:'B_min',  L:'Fs_min' },
+  'D_min':  { root:2,  quality:'min', notes:[2,5,9],    P:'D_maj',  R:'F_maj',  L:'Bb_maj' },
+  'Eb_maj': { root:3,  quality:'maj', notes:[3,7,10],   P:'Eb_min', R:'C_min',  L:'G_min'  },
+  'Eb_min': { root:3,  quality:'min', notes:[3,6,10],   P:'Eb_maj', R:'Fs_maj', L:'B_maj'  },
+  'E_maj':  { root:4,  quality:'maj', notes:[4,8,11],   P:'E_min',  R:'Cs_min', L:'Gs_min' },
+  'E_min':  { root:4,  quality:'min', notes:[4,7,11],   P:'E_maj',  R:'G_maj',  L:'C_maj'  },
+  'F_maj':  { root:5,  quality:'maj', notes:[5,9,0],    P:'F_min',  R:'D_min',  L:'A_min'  },
+  'F_min':  { root:5,  quality:'min', notes:[5,8,0],    P:'F_maj',  R:'Ab_maj', L:'Db_maj' },
+  'Fs_maj': { root:6,  quality:'maj', notes:[6,10,1],   P:'Fs_min', R:'Eb_min', L:'Bb_min' },
+  'Fs_min': { root:6,  quality:'min', notes:[6,9,1],    P:'Fs_maj', R:'A_maj',  L:'D_maj'  },
+  'G_maj':  { root:7,  quality:'maj', notes:[7,11,2],   P:'G_min',  R:'E_min',  L:'B_min'  },
+  'G_min':  { root:7,  quality:'min', notes:[7,10,2],   P:'G_maj',  R:'Bb_maj', L:'Eb_maj' },
+  'Ab_maj': { root:8,  quality:'maj', notes:[8,0,3],    P:'Ab_min', R:'F_min',  L:'C_min'  },
+  'Ab_min': { root:8,  quality:'min', notes:[8,11,3],   P:'Ab_maj', R:'B_maj',  L:'E_maj'  },
+  'A_maj':  { root:9,  quality:'maj', notes:[9,1,4],    P:'A_min',  R:'Fs_min', L:'Cs_min' },
+  'A_min':  { root:9,  quality:'min', notes:[9,0,4],    P:'A_maj',  R:'C_maj',  L:'F_maj'  },
+  'Bb_maj': { root:10, quality:'maj', notes:[10,2,5],   P:'Bb_min', R:'G_min',  L:'D_min'  },
+  'Bb_min': { root:10, quality:'min', notes:[10,1,5],   P:'Bb_maj', R:'Cs_maj', L:'Fs_maj' },
+  'B_maj':  { root:11, quality:'maj', notes:[11,3,6],   P:'B_min',  R:'Gs_min', L:'Eb_min' },
+  'B_min':  { root:11, quality:'min', notes:[11,2,6],   P:'B_maj',  R:'D_maj',  L:'G_maj'  },
+  'Gs_min': { root:8,  quality:'min', notes:[8,11,3],   P:'Ab_maj', R:'B_maj',  L:'E_maj'  },
+  'Db_maj': { root:1,  quality:'maj', notes:[1,5,8],    P:'Cs_min', R:'Bb_min', L:'F_min'  },
+};
+
+function chordDisplayName(id) {
+  const c = CHORD_REGISTRY[id];
+  if (!c) return id;
+  return NOTE_NAMES[c.root] + ' ' + (c.quality === 'maj' ? 'Major' : 'Minor');
+}
+
+function getNoteNames(notes) {
+  return notes.map(n => NOTE_NAMES[n % 12]).join(' · ');
+}
+
+// ═══════════════════════════════════════════
+// SECTION 2: TONNETZ GEOMETRY
+// ═══════════════════════════════════════════
+
+// pitch at grid (col, row) = (col*7 + row*4) % 12
+// moving right +7 (P5), moving up +4 (M3), right+down +3 (m3)
+function pitch(col, row) {
+  return ((col * 7 + row * 4) % 12 + 12) % 12;
+}
+
+// Grid dimensions (logical, before canvas scaling)
+const GRID_COLS = 9;
+const GRID_ROWS = 7;
+let W = 72;   // triangle base width
+let H = W * Math.sqrt(3) / 2;
+let ORIGIN_X = 30;
+let ORIGIN_Y = 30;
+
+function nodePixel(col, row) {
+  return {
+    x: ORIGIN_X + col * W + row * (W / 2),
+    y: ORIGIN_Y + row * H
+  };
+}
+
+// Returns array of triangle descriptors covering the visible grid
+// Each: { verts: [{x,y}x3], pitches: [p0,p1,p2], type:'up'|'down' }
+function getAllTriangles() {
+  const tris = [];
+  for (let row = 0; row < GRID_ROWS; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      // Upward triangle
+      if (row + 1 < GRID_ROWS && col + 1 <= GRID_COLS) {
+        const v0 = nodePixel(col,   row);
+        const v1 = nodePixel(col,   row + 1);
+        const v2 = nodePixel(col + 1, row);
+        tris.push({
+          verts: [v0, v1, v2],
+          pitches: [pitch(col, row), pitch(col, row+1), pitch(col+1, row)],
+          type: 'up'
+        });
+      }
+      // Downward triangle
+      if (row - 1 >= 0 && col + 1 <= GRID_COLS) {
+        const v0 = nodePixel(col,   row);
+        const v1 = nodePixel(col + 1, row - 1);
+        const v2 = nodePixel(col + 1, row);
+        tris.push({
+          verts: [v0, v1, v2],
+          pitches: [pitch(col, row), pitch(col+1, row-1), pitch(col+1, row)],
+          type: 'down'
+        });
+      }
+    }
+  }
+  return tris;
+}
+
+function notesMatch(triPitches, chordNotes) {
+  const s = new Set(chordNotes.map(n => ((n % 12) + 12) % 12));
+  const tp = triPitches.map(n => ((n % 12) + 12) % 12);
+  return tp.every(p => s.has(p)) && s.size === 3;
+}
+
+function centroid(verts) {
+  return {
+    x: (verts[0].x + verts[1].x + verts[2].x) / 3,
+    y: (verts[0].y + verts[1].y + verts[2].y) / 3
+  };
+}
+
+// ═══════════════════════════════════════════
+// SECTION 3: CANVAS RENDERING
+// ═══════════════════════════════════════════
+
+const canvas = document.getElementById('tonnetz-canvas');
+const ctx = canvas.getContext('2d');
+
+let logicalW = 720;
+let logicalH = 480;
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const container = canvas.parentElement;
+  logicalW = container.clientWidth;
+  logicalH = Math.round(logicalW * (480 / 720));
+
+  canvas.width  = logicalW * dpr;
+  canvas.height = logicalH * dpr;
+  canvas.style.width  = logicalW + 'px';
+  canvas.style.height = logicalH + 'px';
+
+  // Recompute geometry to fit
+  W = logicalW / (GRID_COLS + 1.5);
+  H = W * Math.sqrt(3) / 2;
+  ORIGIN_X = W * 0.6;
+  ORIGIN_Y = H * 0.6;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function easeInOutQuad(t) {
+  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+}
+
+function drawTriangle(verts, fillStyle, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.moveTo(verts[0].x, verts[0].y);
+  ctx.lineTo(verts[1].x, verts[1].y);
+  ctx.lineTo(verts[2].x, verts[2].y);
+  ctx.closePath();
+  ctx.fillStyle = fillStyle;
+  ctx.fill();
+  ctx.restore();
+}
+
+function render(timestamp) {
+  ctx.clearRect(0, 0, logicalW, logicalH);
+
+  // Background
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, logicalW, logicalH);
+
+  const currentChord = CHORD_REGISTRY[state.currentChordId];
+  const currentNotes = currentChord.notes;
+  const allTris = getAllTriangles();
+
+  // Transition alpha
+  let transAlpha = 1.0;
+  let prevNotes = null;
+  if (state.transition.active) {
+    const elapsed = timestamp - state.transition.startTime;
+    const raw = Math.min(elapsed / state.transition.duration, 1.0);
+    transAlpha = easeInOutQuad(raw);
+    prevNotes = state.transition.fromNotes;
+    if (raw >= 1.0) state.transition.active = false;
+  }
+
+  // 1. Draw all triangles
+  allTris.forEach(tri => {
+    const isCurrent = notesMatch(tri.pitches, currentNotes);
+    const isPrev = prevNotes && notesMatch(tri.pitches, prevNotes);
+
+    if (isCurrent && !isPrev) {
+      drawTriangle(tri.verts, 'rgba(240,165,0,0.55)', transAlpha);
+    } else if (isPrev && !isCurrent) {
+      drawTriangle(tri.verts, 'rgba(240,165,0,0.55)', 1 - transAlpha);
+    } else if (isCurrent && isPrev) {
+      drawTriangle(tri.verts, 'rgba(240,165,0,0.55)', 1.0);
+    } else {
+      drawTriangle(tri.verts, 'rgba(55,70,100,0.35)', 1.0);
+    }
+  });
+
+  // 2. Grid edges
+  ctx.strokeStyle = '#2a3f5f';
+  ctx.lineWidth = 0.8;
+  allTris.forEach(tri => {
+    ctx.beginPath();
+    ctx.moveTo(tri.verts[0].x, tri.verts[0].y);
+    ctx.lineTo(tri.verts[1].x, tri.verts[1].y);
+    ctx.lineTo(tri.verts[2].x, tri.verts[2].y);
+    ctx.closePath();
+    ctx.stroke();
+  });
+
+  // 3. Nodes
+  const pulse = Math.sin(timestamp / 400) * 0.5 + 0.5; // 0..1
+  const activeSet = new Set(currentNotes.map(n => ((n % 12) + 12) % 12));
+
+  const drawn = new Set();
+  for (let row = 0; row < GRID_ROWS; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      const p = pitch(col, row);
+      const px = nodePixel(col, row);
+      const key = `${Math.round(px.x)}_${Math.round(px.y)}`;
+      if (drawn.has(key)) continue;
+      drawn.add(key);
+
+      const isActive = activeSet.has(p);
+      const baseR = isActive ? 14 + pulse * 2.5 : 11;
+
+      if (isActive) {
+        // Glow
+        ctx.save();
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = '#ff9f43';
+        ctx.beginPath();
+        ctx.arc(px.x, px.y, baseR + 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,159,67,0.25)';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Node circle
+      ctx.beginPath();
+      ctx.arc(px.x, px.y, baseR, 0, Math.PI * 2);
+      ctx.fillStyle = isActive ? '#2a4a7f' : '#1a2a40';
+      ctx.strokeStyle = isActive ? '#ff9f43' : '#304060';
+      ctx.lineWidth = isActive ? 2 : 1;
+      ctx.fill();
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = isActive ? '#ffd700' : '#7d8590';
+      ctx.font = `${isActive ? 600 : 400} ${isActive ? 11 : 10}px -apple-system, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(NOTE_NAMES[p], px.x, px.y);
+    }
+  }
+
+  requestAnimationFrame(render);
+}
+
+// ═══════════════════════════════════════════
+// SECTION 4: AUDIO SYNTHESIS
+// ═══════════════════════════════════════════
+
+let audioCtx = null;
+let activeNodes = [];
+
+function ensureAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function noteFreq(pitchClass, octave) {
+  const semitones = (octave - 4) * 12 + pitchClass;
+  return 261.63 * Math.pow(2, semitones / 12);
+}
+
+function chordFrequencies(notes) {
+  // Root in octave 3, third and fifth in octave 4
+  // If a note would be below root, shift up an octave
+  const rootFreq = noteFreq(notes[0], 3);
+  return notes.map((n, i) => {
+    if (i === 0) return rootFreq;
+    let f = noteFreq(n, 4);
+    if (f < rootFreq) f *= 2;
+    return f;
+  });
+}
+
+function stopAllNotes() {
+  const t = audioCtx ? audioCtx.currentTime : 0;
+  activeNodes.forEach(({ gainNode, osc }) => {
+    try {
+      gainNode.gain.setTargetAtTime(0, t, 0.008);
+      setTimeout(() => { try { gainNode.disconnect(); osc.disconnect(); } catch(e){} }, 150);
+    } catch(e) {}
+  });
+  activeNodes = [];
+}
+
+function playChord(notes) {
+  ensureAudioCtx();
+  stopAllNotes();
+
+  const masterGain = audioCtx.createGain();
+  masterGain.gain.setValueAtTime(0.13, audioCtx.currentTime);
+  masterGain.connect(audioCtx.destination);
+
+  const freqs = chordFrequencies(notes);
+  const harmonicGains = [0.50, 0.20, 0.10, 0.05, 0.025];
+  const t = audioCtx.currentTime;
+
+  freqs.forEach(baseFreq => {
+    const noteGain = audioCtx.createGain();
+    noteGain.gain.setValueAtTime(0, t);
+    noteGain.gain.linearRampToValueAtTime(1.0, t + 0.06);
+    noteGain.gain.linearRampToValueAtTime(0.7, t + 0.18);
+    noteGain.gain.setValueAtTime(0.7, t + 0.85);
+    noteGain.gain.linearRampToValueAtTime(0, t + 1.4);
+    noteGain.connect(masterGain);
+
+    harmonicGains.forEach((hGain, i) => {
+      const osc = audioCtx.createOscillator();
+      const hg = audioCtx.createGain();
+      hg.gain.setValueAtTime(hGain, t);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq * (i + 1), t);
+      osc.connect(hg);
+      hg.connect(noteGain);
+      osc.start(t);
+      osc.stop(t + 1.5);
+      activeNodes.push({ gainNode: hg, osc });
+    });
+  });
+}
+
+// ═══════════════════════════════════════════
+// SECTION 5: APPLICATION STATE
+// ═══════════════════════════════════════════
+
+const state = {
+  currentChordId: 'C_maj',
+  lastTransform: null,
+  history: [],
+  transition: {
+    active: false,
+    fromNotes: null,
+    toNotes: null,
+    startTime: 0,
+    duration: 420
+  }
+};
+
+const EXPLANATIONS = {
+  P: {
+    maj: 'P (Parallel): lowers the major third by a semitone, toggling to the parallel minor. One common tone changes.',
+    min: 'P (Parallel): raises the minor third by a semitone, returning to the parallel major. One common tone changes.'
+  },
+  R: {
+    maj: 'R (Relative): shares the major third and fifth with the relative minor — two common tones, root descends a major third.',
+    min: 'R (Relative): shares the minor third and fifth with the relative major — two common tones, root ascends a minor third.'
+  },
+  L: {
+    maj: 'L (Leading-tone): the root descends a semitone to become the leading tone; shares root+M3 with the resulting minor chord.',
+    min: 'L (Leading-tone): the fifth ascends a semitone; shares m3+P5 with the resulting major chord.'
+  }
+};
+
+function getExplanation(transform) {
+  const q = CHORD_REGISTRY[state.currentChordId].quality;
+  return EXPLANATIONS[transform]?.[q] || '';
+}
+
+function updateUI() {
+  const chord = CHORD_REGISTRY[state.currentChordId];
+  document.getElementById('chord-name').textContent = chordDisplayName(state.currentChordId);
+  document.getElementById('chord-notes').textContent = getNoteNames(chord.notes);
+
+  const badge = document.getElementById('last-transform-badge');
+  if (state.lastTransform) {
+    badge.textContent = state.lastTransform + ' transformation applied';
+    badge.style.color = 'var(--amber)';
+    badge.style.borderColor = 'var(--amber)';
+  }
+
+  updatePreviews();
+  renderHistory();
+}
+
+function updatePreviews() {
+  const chord = CHORD_REGISTRY[state.currentChordId];
+  ['P','R','L'].forEach(k => {
+    const preview = document.getElementById('preview-' + k.toLowerCase());
+    preview.textContent = '→ ' + chordDisplayName(chord[k]);
+  });
+
+  // Show explanation for a default transform (P)
+  document.getElementById('explanation-text').textContent =
+    getExplanation('P') + ' ' + getExplanation('R');
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (state.history.length === 0) {
+    list.innerHTML = '<li id="history-empty">No transformations yet</li>';
+    return;
+  }
+  list.innerHTML = state.history.map(h =>
+    `<li>
+      <span class="hist-from">${chordDisplayName(h.from)}</span>
+      <span class="hist-arrow">→</span>
+      <span class="hist-key">${h.transform}</span>
+      <span class="hist-arrow">→</span>
+      <span class="hist-to">${chordDisplayName(h.to)}</span>
+    </li>`
+  ).join('');
+}
+
+function applyTransform(key) {
+  const chord = CHORD_REGISTRY[state.currentChordId];
+  const targetId = chord[key];
+  if (!targetId || !CHORD_REGISTRY[targetId]) {
+    console.warn('Unknown target for transform', key, 'from', state.currentChordId);
+    return;
+  }
+  const targetChord = CHORD_REGISTRY[targetId];
+
+  state.history.unshift({ from: state.currentChordId, transform: key, to: targetId });
+  if (state.history.length > 10) state.history.pop();
+
+  state.transition = {
+    active: true,
+    fromNotes: chord.notes,
+    toNotes: targetChord.notes,
+    startTime: performance.now(),
+    duration: 420
+  };
+
+  state.lastTransform = key;
+  state.currentChordId = targetId;
+
+  playChord(targetChord.notes);
+  updateUI();
+
+  // Highlight explanation for this transform
+  document.getElementById('explanation-text').textContent = getExplanation(key);
+}
+
+// ═══════════════════════════════════════════
+// SECTION 6: UI WIRING & INITIALIZATION
+// ═══════════════════════════════════════════
+
+document.getElementById('btn-p').addEventListener('click', () => applyTransform('P'));
+document.getElementById('btn-r').addEventListener('click', () => applyTransform('R'));
+document.getElementById('btn-l').addEventListener('click', () => applyTransform('L'));
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  ensureAudioCtx();
+  playChord(CHORD_REGISTRY[state.currentChordId].notes);
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  state.currentChordId = 'C_maj';
+  state.lastTransform = null;
+  state.history = [];
+  state.transition.active = false;
+  document.getElementById('last-transform-badge').textContent = 'Start';
+  document.getElementById('last-transform-badge').style.color = '';
+  document.getElementById('last-transform-badge').style.borderColor = '';
+  updateUI();
+});
+
+// Keyboard shortcuts: p, r, l keys
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toUpperCase();
+  if (k === 'P') applyTransform('P');
+  else if (k === 'R') applyTransform('R');
+  else if (k === 'L') applyTransform('L');
+});
+
+// Resize handling
+const ro = new ResizeObserver(() => {
+  resizeCanvas();
+});
+ro.observe(canvas.parentElement);
+
+// Init
+resizeCanvas();
+updateUI();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
